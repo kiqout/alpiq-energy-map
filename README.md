@@ -112,4 +112,5 @@ The **Production by technology** and **Environmental impact comparison** cards u
 
 Photo assets can be downloaded into `public/media/` with `npm run media:download`. If the new local files are not present, the technology cards fall back to the corresponding public Wikimedia image URLs and therefore need an internet connection. Source links, authors and licenses are listed in `MEDIA-CREDITS.md` and in the in-app **Photo credits & licenses** disclosure. Retain that attribution when redistributing the project. All photo motion respects `prefers-reduced-motion`. The original technology chart and capacity table remain available under **View detailed figures**.
 #   a l p i q - e n e r g y - m a p  
+ #   a l p i q - e n e r g y - m a p  
  
