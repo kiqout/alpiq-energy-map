@@ -1,0 +1,21 @@
+{
+  "product": "Annual VIIRS VNL V2.1 nighttime lights",
+  "year": 2024,
+  "source_record": "https://zenodo.org/records/17294744",
+  "source_file": "nightlights.average_viirs.v21_m_500m_s_20240101_20241231_go_epsg4326_v20250904.tif",
+  "source_md5": "0b976892d40c2d0d99177c727289eaf2",
+  "source_grid": "15 arc-seconds, EPSG:4326 (approximately 464 m at the equator)",
+  "extent_wsen": [
+    2.0,
+    43.5,
+    16.0,
+    52.5
+  ],
+  "region": "Central Europe context tile centred on Switzerland; includes adjacent France, Germany, Italy, Austria and Liechtenstein",
+  "native_crop_dimensions": [
+    3360,
+    2160
+  ],
+  "texture_file": "central_europe_night_viirs.png",
+  "note": "Near-neutral warm-white radiance pixels only. Low-level haze is suppressed; city bloom and warm color are applied once by the Three.js shader. No synthetic fallback is used when this tile is absent."
+}

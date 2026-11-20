@@ -1,0 +1,28 @@
+{
+  "name": "alpiq-energy-globe",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Independent interactive visualization of Alpiq electricity production, based on public Alpiq reports.",
+  "scripts": {
+    "dev": "node build.mjs --serve",
+    "build": "node build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "media:download": "node scripts/download-media.mjs"
+  },
+  "dependencies": {
+    "@types/three": "^0.187.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.20.0",
+    "typescript": "^6.0.0"
+  }
+}

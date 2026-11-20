@@ -1,0 +1,36 @@
+ALPIQ ENERGY ATLAS - SWISS 3D TERRAIN (A+B)
+
+1) One-time local map-data setup (Windows)
+   Double-click BUILD_SWISS_3D_SCENE.bat and let it finish.
+   It downloads/generates the orthophoto, elevation grid, hillshade and VIIRS night-light texture.
+
+2) Install the app dependencies (from this folder)
+   npm ci
+
+3) Start the app
+   npm run dev
+
+4) Select Switzerland at the top.
+   Use Satellite / Night lights to switch the surface style.
+   Drag to rotate the tilted 3D terrain; use the mouse wheel to zoom.
+
+The raster data are generated locally and are not included in this source ZIP. Motorway trails are generalized visual routes, not power-grid lines or surveyed road paths.
+The app keeps the existing Earth globe for Europe and World.
+
+5) Updated production-by-technology cards
+   Hydropower now shows the Grimsel Dam, nuclear power shows an aerial view of Gösgen,
+   conventional thermal shows a gas combined-cycle station, and wind turbines at Mont-Crosin and the floating solar installation on Lac des Toules have equal
+   side-by-side photo panels. Card captions identify the photo locations; production values
+   and chart data are unchanged.
+   Photo credits and CC licenses are listed in MEDIA-CREDITS.md and in the app.
+   To store the new technology photos locally, run `npm run media:download` once (internet required).
+   Without local files, the technology cards use Wikimedia image URLs. Launch with `npm run dev`;
+   use `npm run build` for production output.
+   The `dist/` folder is generated output and may contain an older preview until rebuilt.
+
+6) Updated Environmental impact comparison and mobile layout
+   The climate cards now show a hydroelectric spillway, industrial emissions, a gas turbine station,
+   a side-by-side gas-reference / Alpiq-generation comparison, Swiss rooftop PV and mature forest.
+   The Wind & solar card uses a shorter title and location caption. Navigation, the 3D scene, cards,
+   calculator, data tables and source notes now reflow for phone screens. Run `npm run media:download`
+   once to fetch the forest photo locally; otherwise the card uses its Wikimedia fallback URL.

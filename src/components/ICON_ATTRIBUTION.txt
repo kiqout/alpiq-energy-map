@@ -1,0 +1,9 @@
+The project uses small inline SVG metric symbols drawn specifically for this interface.
+Their visual language is inspired by Lucide, an open-source SVG icon library:
+https://lucide.dev/
+
+Lucide is released under the ISC License:
+https://github.com/lucide-icons/lucide/blob/main/LICENSE
+
+The inline symbols in MetricIcon.tsx are project-authored shapes and do not require
+an external icon font, CDN request, or runtime package dependency.

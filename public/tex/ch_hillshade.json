@@ -1,0 +1,17 @@
+{
+  "source": "swisstopo WMS-FSDI",
+  "layer": "ch.swisstopo.swissalti3d-reliefschattierung",
+  "method": "Multidirectional hillshade derived from swissALTI3D elevation data",
+  "extent_wsen": [
+    5.0,
+    45.3,
+    11.4,
+    48.3
+  ],
+  "dimensions": [
+    2048,
+    960
+  ],
+  "service": "https://wms.geo.admin.ch/",
+  "note": "Relief-only layer. It is rendered subtly beneath the real night lights and does not add or invent city illumination."
+}

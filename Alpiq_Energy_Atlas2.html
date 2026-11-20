@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alpiq Energy Atlas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --bg: #050a14;
+  --bg2: #070f1e;
+  --card: #0a1628;
+  --card2: #0d1c33;
+  --line: rgba(255,255,255,.07);
+  --line-strong: rgba(255,255,255,.13);
+  --tx: #e8f0fe;
+  --mut: #6b8099;
+  --acc: #38bdf8;
+  --acc2: #4ade80;
+  --warn: #fb923c;
+  --purple: #a78bfa;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #050a14; }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5}
+body{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+
+/* HERO */
+.hero{position:relative;height:100svh;min-height:580px;overflow:hidden;display:flex;align-items:stretch}
+.globe{position:absolute;inset:0;z-index:0}
+.globe canvas{display:block;width:100%;height:100%;cursor:grab;outline:none}
+.globe canvas:active{cursor:grabbing}
+.globe-msg{position:absolute;inset:0;display:grid;place-items:center;color:var(--mut);text-align:center;padding:2rem;font-size:13px}
+
+/* TOPBAR */
+.topbar{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(to bottom,rgba(5,10,20,.85) 0%,transparent 100%)}
+.logo{font-size:17px;font-weight:780;letter-spacing:-.01em;color:var(--tx)}
+.logo span{font-weight:400;color:var(--mut);margin-left:5px}
+.years{display:flex;gap:4px;background:rgba(4,13,27,.7);border:1px solid var(--line-strong);border-radius:999px;padding:4px;backdrop-filter:blur(18px)}
+.years button{border:0;background:none;color:var(--mut);padding:5px 14px;border-radius:999px;font:inherit;font-size:12px;font-weight:650;cursor:pointer;transition:background .2s,color .2s;white-space:nowrap}
+.years button:hover{color:var(--tx)}
+.years button.on{background:linear-gradient(120deg,#36b9f5,#6fe5c0);color:#031322;box-shadow:0 3px 16px #139ac455}
+
+/* MODES */
+.modes{position:absolute;z-index:5;top:72px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(4,13,27,.7);border:1px solid var(--line-strong);border-radius:999px;padding:5px;backdrop-filter:blur(18px);box-shadow:0 8px 32px #0005;white-space:nowrap}
+.modes button{border:0;background:none;color:var(--mut);padding:7px 18px;border-radius:999px;font:inherit;font-weight:650;cursor:pointer;transition:background .2s,color .2s}
+.modes button:hover{color:var(--tx)}
+.modes .on{background:linear-gradient(120deg,#36b9f5,#6fe5c0);color:#031322;box-shadow:0 3px 16px #139ac455}
+
+/* PANELS */
+.panel{position:absolute;top:50%;transform:translateY(-50%);z-index:4;background:rgba(7,15,30,.82);border:1px solid var(--line-strong);border-radius:20px;padding:20px;backdrop-filter:blur(22px);width:300px;max-height:calc(100svh - 140px);overflow-y:auto}
+.panel.left{left:20px}
+.panel.right{right:20px;width:340px}
+.panel::-webkit-scrollbar{width:4px}
+.panel::-webkit-scrollbar-track{background:transparent}
+.panel::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:2px}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mut);text-transform:uppercase}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid;text-transform:uppercase;letter-spacing:.06em}
+.badge.actual{color:#4ade80;border-color:#4ade8055}
+.badge.provisional{color:#fb923c;border-color:#fb923c55}
+.big{margin:12px 0 6px;font-size:34px;font-weight:780;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:13px;color:var(--mut);font-weight:500;margin-left:4px;letter-spacing:0}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px;color:var(--mut)}
+.kv b{color:var(--tx);font-weight:650;text-align:right}
+.note{font-size:11px;color:var(--mut);margin-top:8px;line-height:1.5}
+.source-inline{display:block;margin-top:10px;font-size:11px;color:var(--acc);text-decoration:none;opacity:.8}
+.source-inline:hover{opacity:1}
+.na{color:var(--mut);font-style:italic;font-size:12px}
+
+/* TREND */
+.trend{display:flex;gap:5px;align-items:flex-end;height:44px;margin-top:12px}
+.tb{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:0;flex:1;min-width:0}
+.tb i{display:block;width:100%;background:var(--line-strong);border-radius:3px 3px 0 0;transition:background .2s;min-height:4px}
+.tb span{font-size:9px;color:var(--mut);white-space:nowrap}
+.tb.actual i{background:rgba(56,189,248,.35)}
+.tb.provisional i{background:rgba(251,146,60,.35)}
+.tb.on i,.tb:hover i{background:var(--acc)!important}
+.tb.on span,.tb:hover span{color:var(--tx)}
+
+/* LIGHT PANEL */
+.light-panel .earth-days{display:flex;align-items:baseline;gap:9px;margin:14px 0 2px;font-size:52px;line-height:1;font-weight:780;letter-spacing:-.055em;font-variant-numeric:tabular-nums;text-shadow:0 0 28px #38bdf822}
+.light-panel .earth-days small{font-size:14px;color:var(--mut);font-weight:600;letter-spacing:0}
+.earth-description{font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:12px}
+.earth-equivalent{display:flex;flex-direction:column;gap:4px;margin:10px 0;border-top:1px solid var(--line);padding-top:10px}
+.earth-equivalent>div{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mut)}
+.earth-equivalent b{color:var(--tx);font-weight:650}
+.earth-progress{height:6px;background:var(--line-strong);border-radius:3px;margin:10px 0;overflow:hidden}
+.earth-progress i{display:block;height:100%;background:linear-gradient(90deg,#38bdf8,#4ade80);border-radius:3px;transition:width .6s ease}
+.light-indicator{width:8px;height:8px;background:#4ade80;border-radius:50%;box-shadow:0 0 8px #4ade80;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.8)}}
+.panel-footnote{font-size:10px;color:var(--mut);margin-top:12px;line-height:1.55;border-top:1px solid var(--line);padding-top:10px;opacity:.8}
+.method-label{font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(251,146,60,.12);color:#fb923c;border:1px solid rgba(251,146,60,.25);margin-left:4px}
+
+/* SCROLL CTA */
+.scroll{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);z-index:5;color:var(--mut);font-size:12px;font-weight:600;letter-spacing:.06em;text-decoration:none;animation:bob 3s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(5px)}}
+
+/* MAIN */
+main{background:var(--bg2);padding:40px 24px 60px}
+.section-heading{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px}
+.section-heading h2{font-size:22px;font-weight:720;letter-spacing:-.02em;margin-top:4px}
+.section-meta{font-size:11px;color:var(--mut);white-space:nowrap;padding-top:6px}
+section{max-width:860px;margin:0 auto 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.unavailable-card{text-align:center;padding:28px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:680px){.grid2{grid-template-columns:1fr}}
+
+/* BARS */
+.bar-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px}
+.bar-row:not(:last-child){border-bottom:1px solid var(--line)}
+.bar-label{flex:0 0 110px;color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.bar-val{flex:0 0 65px;text-align:right;color:var(--tx);font-variant-numeric:tabular-nums;font-size:12px}
+
+/* TABLE */
+.table-card table{width:100%;border-collapse:collapse;font-size:12px}
+.table-card th{color:var(--mut);font-weight:600;padding:4px 0 10px;border-bottom:1px solid var(--line);text-align:left}
+.table-card td{padding:7px 0;border-bottom:1px solid var(--line)}
+.table-card tr.tot td{font-weight:700;color:var(--tx)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:12px}
+.card.stat{padding:16px}
+.card.stat span{display:block;font-size:11px;color:var(--mut);margin-bottom:6px}
+.card.stat b{font-size:20px;font-weight:720;font-variant-numeric:tabular-nums}
+.card.stat b small{font-size:12px;color:var(--mut);font-weight:500;margin-left:3px}
+.method-strip{font-size:11px;color:var(--mut);padding:12px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+
+/* Environmental cards use their own open-license photo set. */
+.card.stat{position:relative;isolation:isolate;overflow:hidden;min-height:154px;background:#0a1628}
+.card.stat::before{content:"";position:absolute;z-index:0;inset:0;background-image:var(--stat-photo);background-size:cover;background-position:center 48%;opacity:.66;transform:scale(1.02);animation:environment-photo-drift 34s ease-in-out infinite alternate;pointer-events:none}
+.card.stat::after{content:"";position:absolute;z-index:1;inset:0;background:linear-gradient(90deg,rgba(5,12,24,.76),rgba(5,12,24,.24)),linear-gradient(0deg,rgba(5,12,24,.90),rgba(5,12,24,.08) 90%);pointer-events:none}
+.card.stat>span,.card.stat>b{position:relative;z-index:2;color:#f0f6ff;text-shadow:0 2px 14px rgba(0,0,0,.65)}
+.card.stat>span{max-width:90%;font-size:11px;color:#d8e5f2}
+.card.stat b small{color:#d3dfeb}
+.media-credits{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--mut);font-size:11px}
+.media-credits summary{cursor:pointer;font-weight:650;color:var(--tx)}
+.media-credits ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;padding:10px 0 0 16px}
+.media-credits li{line-height:1.5}
+.media-credits a{color:var(--acc)}
+@keyframes environment-photo-drift{from{transform:scale(1.015) translate3d(-.2%,0,0)}to{transform:scale(1.09) translate3d(.35%,-.45%,0)}}
+@media(max-width:600px){.media-credits ul{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.card.stat::before{animation:none}}
+
+/* SOURCES */
+.sources-card ul.src{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.src li a{color:var(--acc);font-size:12px;text-decoration:none}
+.src li a:hover{text-decoration:underline}
+.src li a span{opacity:.5}
+.method-columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.method-columns{grid-template-columns:1fr}}
+ul.meth{list-style:none;display:flex;flex-direction:column;gap:8px}
+ul.meth li{font-size:11px;color:var(--mut);padding-left:12px;position:relative;line-height:1.6}
+ul.meth li::before{content:'·';position:absolute;left:0;color:var(--acc)}
+
+/* FOOTER */
+.footer{text-align:center;padding:28px;font-size:11px;color:var(--mut);letter-spacing:.08em;font-weight:700;border-top:1px solid var(--line)}
+.footer span{font-weight:400;margin-left:8px;opacity:.6}
+.delta-pos{color:#4ade80}
+.delta-neg{color:#f87171}
+
+/* DELTA */
+.delta{font-weight:650}
+
+/* CALCULATOR */
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:580px){.calc-grid{grid-template-columns:1fr}}
+.calc-field label{display:block;font-size:11px;color:var(--mut);margin-bottom:4px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.calc-field input,.calc-field select{width:100%;background:var(--card2);border:1px solid var(--line-strong);border-radius:8px;padding:9px 12px;color:var(--tx);font:inherit;font-size:14px}
+.calc-field input:focus,.calc-field select:focus{outline:2px solid var(--acc);border-color:transparent}
+.calc-result{background:var(--card2);border-radius:12px;padding:16px;font-size:12px;color:var(--mut);line-height:1.8}
+.calc-result b{color:var(--tx);font-size:16px}
+
+@media(max-width:980px){
+  .panel{width:280px}
+  .panel.right{width:300px}
+}
+@media(max-width:760px){
+  .hero{flex-direction:column;height:auto;min-height:0}
+  .globe{position:relative;inset:auto;height:58svh;min-height:330px;max-height:530px}
+  .panel{position:relative;top:auto;left:auto;right:auto;transform:none;width:auto;margin:12px 14px 0;border-radius:16px;max-height:none}
+  .panel.right{width:auto}
+  .modes{top:auto;bottom:12px;left:50%;transform:translateX(-50%)}
+  .modes button{padding:6px 12px;font-size:11px}
+  .topbar{padding:12px 14px}
+  .scroll{display:none}
+  .light-panel .earth-days{font-size:44px}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const YEARS_DATA = [
+  {
+    year: 2024, status: 'actual', period: 'FY 2024 (1 Jan – 31 Dec)',
+    statusNote: 'Full-year figures from the Annual Report 2024.',
+    sourceUrl: 'https://reports.alpiq.com/24/about-us', sourceLabel: 'Annual Report 2024',
+    totalGwh: 17281, periodDays: 366, totalMw: 5721,
+    tech: { hydro:{gwh:6774,mw:3327}, nuclear:{gwh:6705,mw:831}, thermal:{gwh:3375,mw:1308}, windpv:{gwh:427,mw:255} },
+    techLabels: { windpv: 'Small-scale hydro, wind & PV' },
+    countries: { CH: 5692+70+5833, FR: 1082+38+873, IT: 319+2444, ES: 487, HU: 444 },
+    envGwh: 18950, intensityG: 76.0, scope12T: 1439441, gasIntensityG: 422.2,
+    yoyPct: null, yoyNote: null,
+  },
+  {
+    year: 2025, status: 'actual', period: 'FY 2025 (1 Jan – 31 Dec)',
+    statusNote: 'Full-year figures from the Annual Report 2025.',
+    sourceUrl: 'https://reports.alpiq.com/25/about-us', sourceLabel: 'Annual Report 2025',
+    totalGwh: 14860, periodDays: 365, totalMw: 5616,
+    tech: { hydro:{gwh:7001,mw:3199}, nuclear:{gwh:4546,mw:831}, thermal:{gwh:2990,mw:1343}, windpv:{gwh:323,mw:244} },
+    techLabels: {},
+    countries: { CH: 6016+13+3631, FR: 984+33+915, IT: 277+2401, ES: 327, HU: 262 },
+    envGwh: 14918, intensityG: 83.9, headlineIntensityG: 99.4, scope12T: 1251771, gasIntensityG: 414.0,
+    yoyPreviousGwh: 18898,
+    yoyNote: 'The 2025 report compares against restated 2024 own production of 18,898 GWh (−21%). The separate 2024 production table reports 17,281 GWh; these bases are not directly comparable.',
+  },
+  {
+    year: 2026, status: 'provisional', period: 'H1 2026 (1 Jan – 30 Jun)',
+    statusNote: 'Half-year only (Interim Report 2026). No technology/country split or emissions data verified.',
+    sourceUrl: 'https://www.alpiq.com/fileadmin/ALPIQ/newsroom/publications/interim_report/alpiq_interim_report_2026_en.pdf',
+    sourceLabel: 'Interim Report 2026',
+    totalGwh: 7758, periodDays: 181, totalMw: null,
+    tech: null, techLabels: {}, countries: null,
+    envGwh: null, intensityG: null, scope12T: null, gasIntensityG: null,
+    yoyPreviousGwh: 7452,
+    yoyNote: 'Compared with H1 2025 (7,452 GWh): +4%.',
+  },
+];
+
+const TECH_CONFIG = {
+  hydro:   { label: 'Hydropower',           color: '#38bdf8' },
+  nuclear: { label: 'Nuclear power',         color: '#a78bfa' },
+  thermal: { label: 'Conventional thermal',  color: '#fb923c' },
+  windpv:  { label: 'Wind & photovoltaics',  color: '#4ade80' },
+};
+const COUNTRY_NAMES = { CH:'Switzerland', FR:'France', IT:'Italy', ES:'Spain', HU:'Hungary' };
+const COUNTRY_COLORS = { CH:'#4ade80', FR:'#38bdf8', IT:'#38bdf8', ES:'#38bdf8', HU:'#38bdf8' };
+
+// ─── LIGHTING DATA ───────────────────────────────────────────────────────────
+const GLOBAL_LIGHTING_TWH = 2200;
+const GLOBAL_ELECTRICITY_TWH = 29471;
+const GLOBAL_LIGHTING_SHARE = GLOBAL_LIGHTING_TWH / GLOBAL_ELECTRICITY_TWH;
+
+const REGIONS = {
+  switzerland: {
+    id: 'switzerland', label: 'Switzerland', short: 'CH',
+    electricityTwh: 56.1,
+    method: 'estimated',
+    get lightingTwh() { return this.electricityTwh * GLOBAL_LIGHTING_SHARE; },
+    sourceLabel: 'Swiss Federal Office of Energy (SFOE), final electricity consumption 2023',
+    sourceUrl: 'https://www.uvek.admin.ch/en/nsb?id=100748',
+    note: 'Estimated by applying the IEA global lighting share to Switzerland\'s verified final electricity consumption. Not an official lighting-specific figure.',
+  },
+  europe: {
+    id: 'europe', label: 'Europe (EU‑27)', short: 'EU-27',
+    electricityTwh: 2637,
+    method: 'estimated',
+    get lightingTwh() { return this.electricityTwh * GLOBAL_LIGHTING_SHARE; },
+    sourceLabel: 'Eurostat, EU‑27 net electricity generation 2023',
+    sourceUrl: 'https://ec.europa.eu/eurostat/statistics-explained/SEPDF/cache/1221.pdf',
+    note: 'Estimated by applying the IEA global lighting share to the EU‑27\'s verified net electricity generation. Not an official lighting-specific figure.',
+  },
+  world: {
+    id: 'world', label: 'World', short: 'World',
+    electricityTwh: GLOBAL_ELECTRICITY_TWH,
+    method: 'direct',
+    get lightingTwh() { return GLOBAL_LIGHTING_TWH; },
+    sourceLabel: 'IEA – global building & outdoor lighting demand (~2,200 TWh)',
+    sourceUrl: 'https://www.iea.org/commentaries/the-next-wave-of-led-deployment-smarter-circular-and-more-efficient',
+    note: 'Directly sourced IEA estimate of worldwide building and outdoor lighting demand, ~2,200 TWh/year.',
+  },
+};
+
+function getLightingStats(year, regionId) {
+  const y = YEARS_DATA.find(v => v.year === year);
+  const region = REGIONS[regionId];
+  if (!y || !y.totalGwh || !region) return null;
+  const energyTwh = y.totalGwh / 1000;
+  const lightingPerYear = region.lightingTwh;
+  const lightingForPeriod = lightingPerYear * y.periodDays / 365;
+  const regionShare = energyTwh / lightingForPeriod;
+  const daysOfLighting = (energyTwh / lightingPerYear) * 365;
+  return { energyTwh, lightingPerYear, lightingForPeriod, regionShare, daysOfLighting };
+}
+
+// ─── THREE.JS GLOBE ──────────────────────────────────────────────────────────
+const EARTH_V_SHADER = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+// uRegionCenter: lon,lat in degrees of region center; uRegionRadius: half-width degrees; uRegionBoost: 0=world, 1=max boost
+const EARTH_F_SHADER = `
+  uniform sampler2D nightMap;
+  uniform vec3 uMaskW; // weights: x=Switzerland, y=Europe(non-CH), z=rest of world
+  uniform vec2 uTexel;
+  varying vec2 vUv;
+  float boxMask(vec2 ll, vec4 b, float f){ // lonMin, lonMax, latMin, latMax
+    float x = smoothstep(b.x-f, b.x, ll.x) * (1.0 - smoothstep(b.y, b.y+f, ll.x));
+    float y = smoothstep(b.z-f, b.z, ll.y) * (1.0 - smoothstep(b.w, b.w+f, ll.y));
+    return x*y;
+  }
+  float cityLum(vec2 uv){
+    vec3 c = texture2D(nightMap, uv).rgb;
+    return smoothstep(0.06, 0.35, dot(c, vec3(0.299, 0.587, 0.114)));
+  }
+  void main() {
+    vec4 col = texture2D(nightMap, vUv);
+    float lum = dot(col.rgb, vec3(0.299, 0.587, 0.114));
+    float cityMask = smoothstep(0.06, 0.3, lum);
+    float bloom = 0.0;
+    for (int i = 0; i < 8; i++) {
+      float a = float(i) * 0.7853982;
+      vec2 o = vec2(cos(a), sin(a));
+      bloom += cityLum(vUv + o * uTexel * 3.0) + cityLum(vUv + o * uTexel * 7.0) * 0.6;
+    }
+    bloom /= 12.8;
+    vec3 base = col.rgb * 0.30;
+    vec3 warm = vec3(1.0, 0.72, 0.38);
+    vec3 emissive = col.rgb * vec3(1.2, 1.0, 0.7) * pow(max(lum, 0.0), 0.6) * 2.4 * cityMask;
+    vec3 halo = warm * bloom * 0.45 * (0.3 + cityMask);
+    vec2 ll = vec2((vUv.x - 0.5) * 360.0, (0.5 - vUv.y) * 180.0);
+    float ch = boxMask(ll, vec4(5.9, 10.6, 45.7, 47.9), 1.2);
+    float eu = boxMask(ll, vec4(-11.0, 35.0, 35.0, 71.0), 4.0) * (1.0 - ch);
+    float rest = clamp(1.0 - max(ch, eu), 0.0, 1.0);
+    float w = ch * uMaskW.x + eu * uMaskW.y + rest * uMaskW.z;
+    vec3 lights = (emissive + halo) * w;
+    vec3 final = base * mix(0.6, 1.0, clamp(w, 0.0, 1.0)) + lights;
+    gl_FragColor = vec4(clamp(final, 0.0, 1.0), 1.0);
+  }
+`;
+const ATM_V = `varying vec3 vN; varying vec3 vPos; void main(){ vN = normalize(mat3(modelViewMatrix)*normal); vPos = (modelViewMatrix*vec4(position,1.0)).xyz; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`;
+// BackSide: normals face inward. Rim = edge of sphere = where normal is perpendicular to view ray.
+// viewDir in view-space is normalize(-vPos). Rim intensity = 1 - |dot(viewDir, normal)|.
+const ATM_F = `varying vec3 vN; varying vec3 vPos; void main(){ vec3 viewDir=normalize(-vPos); float d=abs(dot(normalize(vN),viewDir)); float rim = pow(1.0 - smoothstep(0.0, 0.42, d), 2.0); vec3 g=vec3(0.10,0.48,0.82)*rim*0.7; gl_FragColor=vec4(g,rim*0.6); }`;
+
+// Camera positions (lat, lon, distance)
+function llToVec(lat, lon, r) {
+  const p = THREE.MathUtils.degToRad(90 - lat);
+  const t = THREE.MathUtils.degToRad(lon + 180);
+  return new THREE.Vector3(-r * Math.sin(p) * Math.cos(t), r * Math.cos(p), r * Math.sin(p) * Math.sin(t));
+}
+
+const CAM_POSITIONS = {
+  switzerland: llToVec(46.8, 8.2, 2.1),
+  europe:      llToVec(48.0, 10.0, 2.85),
+  world:       llToVec(20.0, 0.0, 4.5),
+};
+
+let globeRenderer = null, globeCamera = null, globeScene = null;
+let earthMaterial = null; // keep ref to update region uniforms
+let globeRAF = 0, globeDisposed = false;
+let camAnim = { from: null, to: null, t: 1, active: false };
+let orbitDist = CAM_POSITIONS.europe.length();
+function sph(v){ return { th: Math.atan2(v.z, v.x), ph: Math.acos(Math.max(-1, Math.min(1, v.y / v.length()))), d: v.length() }; }
+let idleTimer = 0;
+let currentMode = 'europe'; // must match selectedMode below
+let orbitListenersAttached = false; // prevent double-binding
+
+// Region shader params: center [lon,lat], radius (degrees), boost [0..1]
+const REGION_SHADER_PARAMS = {
+  switzerland: { center: [8.3, 46.8],  radius: 12.0,  boost: 1.0 },
+  europe:      { center: [13.0, 50.0], radius: 38.0,  boost: 0.75 },
+  world:       { center: [0.0, 20.0],  radius: 180.0, boost: 0.0 },
+};
+
+let maskAnim = { init: false, active: false, from: null, to: null, start: 0 };
+function applyRegionToShader(mode) {
+  if (!earthMaterial) return;
+  const W = { switzerland: [3.2, 0.9, 0.35], europe: [1.8, 2.4, 0.45], world: [1.0, 1.0, 1.0] }[mode] || [1,1,1];
+  const cur = earthMaterial.uniforms.uMaskW.value;
+  if (!maskAnim.init) { cur.set(W[0], W[1], W[2]); maskAnim.init = true; return; }
+  maskAnim.from = cur.clone(); maskAnim.to = new THREE.Vector3(W[0], W[1], W[2]); maskAnim.start = performance.now(); maskAnim.active = true;
+}
+
+function initGlobe(container) {
+  globeDisposed = false;
+  globeScene = new THREE.Scene();
+
+  globeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  globeRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  globeRenderer.setClearColor(0x050a14, 0);
+  globeRenderer.autoClear = true;
+  container.appendChild(globeRenderer.domElement);
+
+  globeCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
+  const initPos = CAM_POSITIONS[currentMode];
+  globeCamera.position.copy(initPos);
+  globeCamera.lookAt(0, 0, 0);
+  // Sync orbit angles to actual initial camera position
+  { const q = sph(initPos); orbitTheta = q.th; orbitPhi = q.ph; orbitDist = q.d; }
+  autoRotating = false; scheduleAutoRotate();
+
+  setupOrbit(globeRenderer.domElement);
+
+  const setSize = () => {
+    const c = (globeRenderer && globeRenderer.domElement.parentElement) || container;
+    if (!globeRenderer || !c.clientWidth || !c.clientHeight) return;
+    globeRenderer.setSize(c.clientWidth, c.clientHeight);
+    globeCamera.aspect = c.clientWidth / c.clientHeight;
+    globeCamera.updateProjectionMatrix();
+  };
+  // Store RO on window so we can disconnect on destroy without re-creating
+  if (window._globeRO) window._globeRO.disconnect();
+  window._globeSetSize = setSize;
+  window._globeRO = new ResizeObserver(setSize);
+  window._globeRO.observe(container);
+  setSize();
+
+  // Night texture - use a procedural fallback since we can't load external textures
+  // Try to load from relative path first, fall back to procedural
+  const loader = new THREE.TextureLoader();
+  
+  const initRegionP = REGION_SHADER_PARAMS[currentMode] || REGION_SHADER_PARAMS.world;
+
+  const buildEarth = (texture) => {
+    const uniforms = {
+      nightMap:      { value: texture },
+      uMaskW:        { value: new THREE.Vector3(1, 1, 1) },
+      uTexel:        { value: new THREE.Vector2(1/2048, 1/1024) },
+    };
+    if (texture.image && texture.image.width) uniforms.uTexel.value.set(1/texture.image.width, 1/texture.image.height);
+    earthMaterial = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: EARTH_V_SHADER,
+      fragmentShader: EARTH_F_SHADER,
+      toneMapped: false,
+    });
+
+    const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 128), earthMaterial);
+    globeScene.add(earth);
+    applyRegionToShader(currentMode);
+
+    const atm = new THREE.Mesh(
+      new THREE.SphereGeometry(1.038, 64, 64),
+      new THREE.ShaderMaterial({
+        vertexShader: ATM_V, fragmentShader: ATM_F,
+        blending: THREE.AdditiveBlending, side: THREE.BackSide,
+        transparent: true, depthWrite: false, toneMapped: false,
+      })
+    );
+    globeScene.add(atm);
+  };
+
+  loader.load('./tex/night.jpg',
+    tex => {
+      if (!globeDisposed) {
+        // r128 uses encoding, not colorSpace
+        tex.encoding = THREE.sRGBEncoding;
+        buildEarth(tex);
+      } else tex.dispose();
+    },
+    undefined,
+    () => { if (!globeDisposed) buildEarth(buildProceduralTexture()); }
+  );
+
+  const animate = () => {
+    if (globeDisposed) return;
+    globeRAF = requestAnimationFrame(animate);
+
+    if (maskAnim.active && earthMaterial) {
+      const k = Math.min(1, (performance.now() - maskAnim.start) / 700);
+      const e = k * k * (3 - 2 * k);
+      earthMaterial.uniforms.uMaskW.value.lerpVectors(maskAnim.from, maskAnim.to, e);
+      if (k >= 1) maskAnim.active = false;
+    }
+    // Camera animation
+    if (camAnim.active && camAnim.t < 1) {
+      camAnim.t = Math.min(1, camAnim.t + 0.018);
+      const e = camAnim.t < 0.5 ? 4*camAnim.t**3 : 1 - (-2*camAnim.t+2)**3/2;
+      let dth = camAnim.to.th - camAnim.from.th;
+      dth = Math.atan2(Math.sin(dth), Math.cos(dth));
+      orbitTheta = camAnim.from.th + dth * e;
+      orbitPhi = camAnim.from.ph + (camAnim.to.ph - camAnim.from.ph) * e;
+      orbitDist = camAnim.from.d + (camAnim.to.d - camAnim.from.d) * e;
+      if (camAnim.t >= 1) { camAnim.active = false; scheduleAutoRotate(); }
+      applyOrbit();
+    } else {
+      if (autoRotating) {
+        orbitTheta += 0.001;
+        updateCameraOrbit();
+      }
+    }
+
+    globeRenderer.render(globeScene, globeCamera);
+  };
+  animate();
+}
+
+// Simple orbit controller — angles initialised when globe is first created
+let orbitTheta = 0, orbitPhi = Math.PI / 2;
+let autoRotating = true;
+let isDragging = false, lastMX = 0, lastMY = 0;
+
+function updateCameraOrbit() {
+  if (!globeCamera || camAnim.active) return;
+  applyOrbit();
+}
+function applyOrbit() {
+  if (!globeCamera) return;
+  const dist = orbitDist;
+  globeCamera.position.set(
+    dist * Math.sin(orbitPhi) * Math.cos(orbitTheta),
+    dist * Math.cos(orbitPhi),
+    dist * Math.sin(orbitPhi) * Math.sin(orbitTheta)
+  );
+  globeCamera.lookAt(0, 0, 0);
+}
+
+function setupOrbit(container) {
+  if (orbitListenersAttached) return; // prevent double-binding on re-render
+  orbitListenersAttached = true;
+
+  const onDown = e => {
+    isDragging = true; autoRotating = false; camAnim.active = false;
+    clearTimeout(idleTimer);
+    lastMX = e.clientX; lastMY = e.clientY;
+  };
+  const onMove = e => {
+    if (!isDragging) return;
+    const dx = (e.clientX - lastMX) * 0.005;
+    const dy = (e.clientY - lastMY) * 0.005;
+    orbitTheta += dx;
+    orbitPhi = Math.max(0.16, Math.min(Math.PI - 0.16, orbitPhi + dy));
+    lastMX = e.clientX; lastMY = e.clientY;
+    updateCameraOrbit();
+  };
+  const onUp = () => { isDragging = false; scheduleAutoRotate(); };
+
+  container.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+
+  container.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (!globeCamera) return;
+    camAnim.active = false;
+    orbitDist = Math.max(1.5, Math.min(5.5, orbitDist + e.deltaY * 0.003));
+    applyOrbit();
+  }, { passive: false });
+
+  let lastTouchX = 0, lastTouchY = 0;
+  container.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      isDragging = true; autoRotating = false; camAnim.active = false;
+      clearTimeout(idleTimer);
+      lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+  container.addEventListener('touchmove', e => {
+    if (!isDragging || e.touches.length !== 1) return;
+    e.preventDefault();
+    const dx = (e.touches[0].clientX - lastTouchX) * 0.005;
+    const dy = (e.touches[0].clientY - lastTouchY) * 0.005;
+    orbitTheta += dx;
+    orbitPhi = Math.max(0.16, Math.min(Math.PI - 0.16, orbitPhi + dy));
+    lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY;
+    updateCameraOrbit();
+  }, { passive: false });
+  container.addEventListener('touchend', () => { isDragging = false; scheduleAutoRotate(); }, { passive: true });
+}
+
+function scheduleAutoRotate() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { autoRotating = true; }, 5000);
+}
+
+function switchMode(mode) {
+  const changed = mode !== currentMode;
+  currentMode = mode;
+  // Always update region shader so mode↔shader stays in sync
+  applyRegionToShader(mode);
+  if (!changed || !globeCamera) return;
+  camAnim.from = { th: orbitTheta, ph: orbitPhi, d: orbitDist };
+  camAnim.to = sph(CAM_POSITIONS[mode]);
+  camAnim.t = 0;
+  camAnim.active = true;
+  autoRotating = false;
+  clearTimeout(idleTimer);
+}
+
+function buildProceduralTexture() {
+  // Canvas-based procedural night earth texture — returns a THREE.Texture
+  const W = 2048, H = 1024;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#010306';
+  ctx.fillRect(0, 0, W, H);
+
+  const cities = [
+    // Europe (dense)
+    [51.5,-0.1,13],[48.8,2.3,11],[52.5,13.4,9],[41.9,12.5,9],[40.4,-3.7,8],
+    [59.9,30.3,7],[55.8,37.6,10],[48.2,16.4,7],[50.0,14.5,6],[53.3,-6.3,6],
+    [52.4,4.9,8],[47.4,8.5,6],[46.9,7.4,5],[45.4,9.2,8],[43.3,5.4,6],
+    [47.5,19.0,6],[50.1,14.4,6],[44.8,20.5,6],[37.9,23.7,7],[41.0,29.0,9],
+    [60.2,24.9,5],[59.3,18.1,6],[55.7,12.6,6],[48.1,11.6,7],[51.1,17.0,5],
+    [50.8,4.4,6],[48.8,2.3,10],[53.6,10.0,6],[54.0,12.1,4],[46.2,6.1,5],
+    // Russia
+    [55.7,37.6,13],[59.9,30.3,9],[56.8,60.6,6],[57.1,65.5,6],[43.0,76.9,5],
+    [52.3,104.3,5],[56.0,92.9,5],[43.1,131.9,6],
+    // North America
+    [40.7,-74.0,16],[34.1,-118.2,14],[41.8,-87.6,12],[29.7,-95.4,10],[33.4,-112.0,8],
+    [37.3,-122.0,10],[47.6,-122.3,8],[45.5,-73.6,9],[43.7,-79.4,9],[49.2,-123.1,8],
+    [32.7,-117.2,8],[30.3,-81.7,7],[38.9,-77.0,9],[39.9,-75.2,8],[42.3,-71.1,8],
+    [29.9,-90.1,6],[35.2,-80.8,6],[33.7,-84.4,7],[36.2,-86.8,6],[41.3,-72.9,5],
+    [25.8,-80.2,8],[26.7,-80.1,7],[43.0,-76.1,5],[44.0,-79.4,5],[45.4,-75.7,5],
+    // East Asia
+    [35.7,139.7,16],[37.5,127.0,13],[31.2,121.5,14],[22.3,114.2,11],[1.3,103.8,10],
+    [13.7,100.5,9],[10.8,106.7,8],[14.5,121.0,8],[22.5,120.4,9],
+    [39.9,116.4,15],[34.1,108.9,9],[30.6,114.3,9],[23.1,113.3,11],
+    [32.0,118.8,9],[26.1,119.3,8],[30.3,120.1,8],[28.7,115.9,7],[36.1,120.4,7],
+    // South/SE Asia
+    [19.1,72.9,13],[28.6,77.2,11],[24.9,67.1,9],[6.9,79.9,7],[17.4,78.5,8],
+    [3.1,101.7,9],[23.7,90.4,9],[12.9,77.6,8],[22.6,88.4,9],[13.1,80.3,7],
+    // Middle East
+    [24.7,46.7,9],[25.2,55.3,8],[33.3,44.4,8],[35.7,51.4,9],[30.0,31.2,10],
+    [33.5,36.3,7],[31.8,35.2,6],[32.1,34.8,7],[36.2,37.2,6],[38.0,46.3,6],
+    // Africa
+    [30.1,31.2,10],[6.5,3.4,8],[-26.2,28.0,8],[-33.9,18.4,7],[4.4,18.6,5],
+    [33.6,-7.6,6],[36.7,3.0,6],[32.9,13.2,6],[-4.3,15.3,5],[-1.3,36.8,6],
+    // South America
+    [-23.5,-46.6,11],[4.7,-74.1,8],[-12.0,-77.0,9],[-34.6,-58.4,9],[-33.5,-70.7,8],
+    [-22.9,-43.2,9],[-15.8,-47.9,7],[-3.1,-60.0,6],[10.5,-66.9,7],[-16.5,-68.1,5],
+    // Australia
+    [-33.9,151.2,9],[-37.8,145.0,8],[-27.5,153.0,7],[-31.9,115.9,6],[-34.9,138.6,5],
+    // North Africa / Arabian coast
+    [33.9,9.6,5],[34.0,-6.8,6],[36.8,10.2,6],[33.9,-6.8,5],
+    // Pakistan / Bangladesh
+    [23.7,90.4,9],[24.9,67.1,8],[31.5,74.3,7],[33.7,73.1,7],
+  ];
+
+  cities.forEach(([lat, lon, size]) => {
+    const x = (lon + 180) / 360 * W;
+    const y = (90 - lat) / 180 * H;
+    const r = size * 3.5;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    // Core: very bright warm white
+    g.addColorStop(0,   `rgba(255,245,210,${Math.min(1, size/13)})`);
+    // Mid: orange-amber glow
+    g.addColorStop(0.3, `rgba(255,190,80,${Math.min(1, size/13 * 0.65)})`);
+    // Edge: warm fade
+    g.addColorStop(0.7, `rgba(255,120,20,${Math.min(1, size/13 * 0.18)})`);
+    g.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(Math.max(0, x-r-1), Math.max(0, y-r-1), r*2+2, r*2+2);
+  });
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.encoding = THREE.sRGBEncoding; // r128 API
+  return texture;
+}
+
+function destroyGlobe() {
+  globeDisposed = true;
+  cancelAnimationFrame(globeRAF);
+  clearTimeout(idleTimer);
+  if (window._globeRO) { window._globeRO.disconnect(); window._globeRO = null; }
+  if (globeScene) {
+    globeScene.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+        else obj.material.dispose();
+      }
+    });
+  }
+  if (globeRenderer) { globeRenderer.dispose(); globeRenderer.domElement.remove(); globeRenderer = null; }
+  globeCamera = null; globeScene = null; earthMaterial = null;
+  camAnim = { from:null, to:null, t:1, active:false };
+  autoRotating = true;
+  orbitListenersAttached = false; // allow re-attach after globe recreation
+}
+
+// ─── UI HELPERS ──────────────────────────────────────────────────────────────
+function nf(v, d=0) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toLocaleString('en', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function pct(v, d=1) { return v == null || isNaN(v) ? '—' : nf(v, d) + '%'; }
+
+function renderDelta(val, suffix='') {
+  if (val == null || isNaN(val)) return '<span class="na">—</span>';
+  const sign = val >= 0 ? '+' : '';
+  const cls = val >= 0 ? 'delta-pos' : 'delta-neg';
+  return `<span class="delta ${cls}">${sign}${nf(val, 1)}${suffix}</span>`;
+}
+
+function renderBars(rows, total) {
+  return rows.map(r => `
+    <div class="bar-row">
+      <div class="bar-label" title="${r.label}">${r.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${total>0?r.value/total*100:0}%;background:${r.color}"></div></div>
+      <div class="bar-val">${nf(r.value)} GWh</div>
+    </div>`).join('');
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let selectedYear = 2025;
+let selectedMode = 'europe';
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  const y = YEARS_DATA.find(v => v.year === selectedYear);
+  const region = REGIONS[selectedMode];
+  const lighting = getLightingStats(selectedYear, selectedMode);
+
+  // YoY
+  let yoyVal = null;
+  if (y.totalGwh != null) {
+    if (y.yoyPreviousGwh != null) yoyVal = (y.totalGwh - y.yoyPreviousGwh) / y.yoyPreviousGwh * 100;
+    else {
+      const prev = YEARS_DATA.find(v => v.year === selectedYear - 1);
+      if (prev?.totalGwh) yoyVal = (y.totalGwh - prev.totalGwh) / prev.totalGwh * 100;
+    }
+  }
+
+  const trendMax = Math.max(...YEARS_DATA.map(v => v.year === 2024 ? 18898 : v.totalGwh ?? 0));
+
+  // Tech rows
+  const techRows = y.tech ? Object.entries(y.tech).map(([k, v]) => ({
+    key: k, label: (y.techLabels[k] || TECH_CONFIG[k]?.label || k),
+    value: v.gwh, mw: v.mw, color: TECH_CONFIG[k]?.color || '#888'
+  })).sort((a,b)=>b.value-a.value) : [];
+
+  // Country rows
+  const countryRows = y.countries ? Object.entries(y.countries)
+    .map(([k,v]) => ({ key:k, label:COUNTRY_NAMES[k]||k, value:v, color:COUNTRY_COLORS[k]||'#38bdf8' }))
+    .sort((a,b)=>b.value-a.value) : [];
+
+  // Env
+  const hasEnv = y.envGwh != null && y.intensityG != null && y.gasIntensityG != null && y.scope12T != null;
+  let avoided = null, redPct = null, trees = null;
+  if (hasEnv) {
+    const whGen = y.envGwh * 1e9;
+    const refEmT = (whGen / 1e3) * y.gasIntensityG / 1e6;
+    const genEmT = (whGen / 1e3) * y.intensityG / 1e6;
+    avoided = refEmT - genEmT;
+    redPct = y.gasIntensityG > 0 ? (y.gasIntensityG - y.intensityG) / y.gasIntensityG * 100 : NaN;
+    trees = (avoided * 1000) / 22;
+  }
+
+  document.getElementById('root').innerHTML = `
+  <header class="hero">
+    <div id="globe-container" class="globe"><div class="globe-msg" id="globe-loading">Loading globe…</div></div>
+    <div class="topbar">
+      <div class="logo">Alpiq <span>Energy Atlas</span></div>
+      <div class="years" role="group" aria-label="Select reporting year">
+        ${YEARS_DATA.map(v => `<button onclick="setYear(${v.year})" class="${v.year===selectedYear?'on':''}">${v.year===2026?'2026 H1':v.year}</button>`).join('')}
+      </div>
+    </div>
+    <div class="modes" role="group" aria-label="Select region view">
+      ${['switzerland','europe','world'].map(m => `<button onclick="setMode('${m}')" class="${m===selectedMode?'on':''}">${REGIONS[m].label}</button>`).join('')}
+    </div>
+    <aside class="panel left">
+      <div class="row-between">
+        <span class="eyebrow">${y.period}</span>
+        <span class="badge ${y.status}">${y.status}</span>
+      </div>
+      <div class="big">${y.totalGwh!=null ? (y.totalGwh/1000).toFixed(2) : '—'} <small>TWh ${selectedYear===2026?'produced · H1':'produced'}</small></div>
+      <div class="kv"><span>${selectedYear===2026?'vs H1 2025':selectedYear===2025?'vs 2024 · restated basis':'Year-on-year'}</span><b>${renderDelta(yoyVal,' %')}</b></div>
+      <div class="kv"><span>Installed capacity</span><b>${y.totalMw!=null ? (y.totalMw/1000).toFixed(2)+' GW' : '<span class="na">Unavailable</span>'}</b></div>
+      <p class="note">${y.statusNote}</p>
+      ${y.yoyNote ? `<p class="note">${y.yoyNote}</p>` : ''}
+      <div class="trend" aria-label="Production trend">
+        ${YEARS_DATA.map(v => { const gh = v.year===2024?18898:v.totalGwh; return `<button class="tb ${v.status} ${v.year===selectedYear?'on':''}" onclick="setYear(${v.year})" title="${v.year}: ${gh!=null?nf(gh)+' GWh':'—'}"><i style="height:${gh!=null?(gh/trendMax*100):0}%"></i><span>${v.year===2024?'2024*':v.status==='provisional'?v.year+' H1':v.year}</span></button>`; }).join('')}
+      </div>
+      <p class="note">* 2024 bar uses the 18,898 GWh restated comparator.</p>
+      <a class="source-inline" href="${y.sourceUrl}" target="_blank" rel="noreferrer">Open reporting source ↗</a>
+    </aside>
+    <aside class="panel right light-panel">
+      <div class="row-between">
+        <span class="eyebrow">Could Alpiq light ${region.label}?</span>
+        <span class="light-indicator"></span>
+      </div>
+      ${lighting ? `
+        <div class="earth-days">${nf(lighting.daysOfLighting,1)}<small>days of ${region.short} lighting</small></div>
+        <p class="earth-description">Alpiq's ${selectedYear===2026?'H1 2026':'FY '+selectedYear} output compares to <strong>${nf(lighting.lightingPerYear,1)} TWh/year</strong> of estimated building &amp; outdoor lighting in ${region.label}.</p>
+        <div class="earth-equivalent">
+          <div><span>${region.label} lighting-years covered</span><b>${nf(lighting.regionShare*lighting.lightingForPeriod/lighting.lightingPerYear*365,2)} days / 365</b></div>
+          <div><span>${region.label} annual lighting demand covered</span><b class="delta-pos">${pct(lighting.regionShare*100,2)}</b></div>
+          <div><span>Regional lighting demand (period)</span><b>${nf(lighting.lightingForPeriod,2)} TWh</b></div>
+        </div>
+        <div class="earth-progress"><i style="width:${Math.max(0,Math.min(100,lighting.regionShare*100))}%"></i></div>
+        <p class="note">${region.method==='estimated'?`<span class="method-label">Estimate</span> ` : ''}${region.note}<br>Source: <a href="${region.sourceUrl}" target="_blank" rel="noreferrer" style="color:var(--acc)">${region.sourceLabel}</a>. Alpiq generated ${nf(lighting.energyTwh,2)} TWh in this period.</p>
+      ` : '<p class="na">Lighting equivalent unavailable for this period.</p>'}
+      <p class="panel-footnote">The globe shows real night-light patterns as visual context. Production is compared independently against each region — Alpiq's full output is compared to Switzerland, Europe, and World separately. This does not imply that Alpiq physically supplies those cities.</p>
+    </aside>
+    <a class="scroll" href="#mix">Explore ↓</a>
+  </header>
+
+  <main>
+    <section id="mix">
+      <div class="section-heading"><div><span class="eyebrow">Generation portfolio</span><h2>Production by technology</h2></div><span class="section-meta">${y.period}</span></div>
+      ${y.tech ? `
+        <div class="grid2">
+          <div class="card">${renderBars(techRows, y.totalGwh)}</div>
+          <div class="card table-card"><table><thead><tr><th>Technology</th><th>GWh</th><th>MW</th></tr></thead><tbody>
+            ${techRows.map(r=>`<tr><td><i class="dot" style="background:${r.color}"></i>${r.label}</td><td>${nf(r.value)}</td><td>${r.mw!=null?nf(r.mw):'—'}</td></tr>`).join('')}
+            <tr class="tot"><td>Total</td><td>${nf(y.totalGwh)}</td><td>${y.totalMw!=null?nf(y.totalMw):'—'}</td></tr>
+          </tbody></table><p class="note">Production and capacity are Alpiq's equity share, not total national output.</p></div>
+        </div>` : `<div class="card unavailable-card"><p class="na">No verified technology breakdown for ${y.period}.</p></div>`}
+    </section>
+
+    <section>
+      <div class="section-heading"><div><span class="eyebrow">Regional footprint</span><h2>Production by country</h2></div><span class="section-meta">${y.period}</span></div>
+      ${countryRows.length ? `<div class="card">${renderBars(countryRows, y.totalGwh ?? countryRows.reduce((s,r)=>s+r.value,0))}<p class="note">Country-level allocation from Alpiq's published tables. Alpiq's equity share of production, not each country's supply mix.</p></div>` : `<div class="card unavailable-card"><p class="na">Country-level split unavailable for ${y.period}.</p></div>`}
+    </section>
+
+    <section>
+      <div class="section-heading"><div><span class="eyebrow">Climate metrics</span><h2>Environmental impact comparison</h2></div><span class="section-meta">Scope 1+2 · equity share</span></div>
+      ${hasEnv ? `
+        <div class="stats">
+          <div class="card stat" style="--stat-photo:url('https://commons.wikimedia.org/wiki/Special:FilePath/Summer_Alpine_landscape.jpg?width=1200')"><span>Group production intensity</span><b>${nf(y.intensityG,1)} <small>g CO₂e/kWh</small></b></div>
+          <div class="card stat" style="--stat-photo:url('https://commons.wikimedia.org/wiki/Special:FilePath/Coal-Fired_Power_Plant_Emissions_Obscuring_Solar_Radiation.jpg?width=1200')"><span>Scope 1+2 emissions</span><b>${nf(y.scope12T/1e6,2)} <small>Mt CO₂e</small></b></div>
+          <div class="card stat" style="--stat-photo:url('https://commons.wikimedia.org/wiki/Special:FilePath/Gas_Turbine_Power_Plant.JPG?width=1200')"><span>Gas fleet reference intensity</span><b>${nf(y.gasIntensityG,1)} <small>g CO₂e/kWh</small></b></div>
+          <div class="card stat" style="--stat-photo:url('https://commons.wikimedia.org/wiki/Special:FilePath/Boundary_Dam_Unit_3_capture_unit.jpg?width=1200')"><span>Difference vs gas benchmark</span><b>${nf(avoided/1e6,2)} <small>Mt CO₂e · illustrative</small></b></div>
+          <div class="card stat" style="--stat-photo:url('https://commons.wikimedia.org/wiki/Special:FilePath/Mittelplatten_-_Val_Mil%C3%A0.jpg?width=1200')"><span>Lower intensity vs gas</span><b>${nf(redPct,1)} <small>%</small></b></div>
+          <div class="card stat" style="--stat-photo:url('https://commons.wikimedia.org/wiki/Special:FilePath/Fig_tree_seedlings_in_a_nursery.jpg?width=1200')"><span>Tree CO₂ absorption equivalent</span><b>${nf(trees/1e6,1)} <small>million trees · 1 yr</small></b></div>
+        </div>
+        <div class="method-strip">
+          <span>Basis: ${nf(y.envGwh)} GWh in Alpiq's climate table.</span>
+          ${y.headlineIntensityG!=null?`<span>Annual Report headline KPI: <b>${nf(y.headlineIntensityG,1)} g CO₂e/kWh</b>. Detailed equity-share table: ${nf(y.intensityG,1)} g/kWh (used here).</span>`:''}
+          <span>Gas comparison is hypothetical; not a claim that CO₂ was physically prevented.</span>
+        </div>
+        <details class="media-credits"><summary>Environmental photo credits &amp; licenses</summary><ul>
+          <li><a href="https://commons.wikimedia.org/wiki/File:Summer_Alpine_landscape.jpg" target="_blank" rel="noreferrer">Summer Alpine landscape</a> — Peter Sabol · CC BY-SA 4.0</li>
+          <li><a href="https://commons.wikimedia.org/wiki/File:Coal-Fired_Power_Plant_Emissions_Obscuring_Solar_Radiation.jpg" target="_blank" rel="noreferrer">Industrial emissions at Petropavl</a> — PlainVector · CC0 1.0</li>
+          <li><a href="https://commons.wikimedia.org/wiki/File:Gas_Turbine_Power_Plant.JPG" target="_blank" rel="noreferrer">Gas Turbine Power Plant</a> — Pro-Per Energy Services · CC BY-SA 4.0</li>
+          <li><a href="https://commons.wikimedia.org/wiki/File:Boundary_Dam_Unit_3_capture_unit.jpg" target="_blank" rel="noreferrer">Boundary Dam carbon capture unit</a> — Implicit Matrix · CC BY 4.0</li>
+          <li><a href="https://commons.wikimedia.org/wiki/File:Mittelplatten_-_Val_Mil%C3%A0.jpg" target="_blank" rel="noreferrer">Mittelplatten electricity pylon</a> — Albinfo · CC BY 4.0</li>
+          <li><a href="https://commons.wikimedia.org/wiki/File:Fig_tree_seedlings_in_a_nursery.jpg" target="_blank" rel="noreferrer">Fig tree seedlings</a> — Chandapiwa Malema · CC0 1.0</li>
+        </ul></details>` : `<div class="card unavailable-card"><p class="na">Environmental data unavailable for ${y.period}.</p></div>`}
+    </section>
+
+    <section>
+      <div class="section-heading"><div><span class="eyebrow">Transparency</span><h2>Data sources &amp; methodology</h2></div><span class="section-meta">Independent visualization</span></div>
+      <div class="card sources-card">
+        <ul class="src">
+          <li><a href="https://reports.alpiq.com/25/about-us" target="_blank" rel="noreferrer">Annual Report 2025 – About us (production, capacity) <span>↗</span></a></li>
+          <li><a href="https://reports.alpiq.com/25/climate-change" target="_blank" rel="noreferrer">Annual Report 2025 – Climate change (emissions, intensity) <span>↗</span></a></li>
+          <li><a href="https://reports.alpiq.com/24/about-us" target="_blank" rel="noreferrer">Annual Report 2024 – About us <span>↗</span></a></li>
+          <li><a href="https://www.alpiq.com/fileadmin/ALPIQ/newsroom/publications/interim_report/alpiq_interim_report_2026_en.pdf" target="_blank" rel="noreferrer">Alpiq Interim Report 2026 <span>↗</span></a></li>
+          <li><a href="https://www.iea.org/commentaries/the-next-wave-of-led-deployment-smarter-circular-and-more-efficient" target="_blank" rel="noreferrer">IEA – global building &amp; outdoor lighting demand (~2,200 TWh) <span>↗</span></a></li>
+          <li><a href="https://ember-energy.org/chapter/global-electricity-trends/" target="_blank" rel="noreferrer">Ember – global electricity demand 2023 (29,471 TWh, used to derive lighting shares) <span>↗</span></a></li>
+          <li><a href="https://ec.europa.eu/eurostat/statistics-explained/SEPDF/cache/1221.pdf" target="_blank" rel="noreferrer">Eurostat – EU‑27 net electricity generation 2023 (2,637 TWh) <span>↗</span></a></li>
+          <li><a href="https://www.uvek.admin.ch/en/nsb?id=100748" target="_blank" rel="noreferrer">SFOE – Switzerland final electricity consumption 2023 (56.1 TWh) <span>↗</span></a></li>
+        </ul>
+        <div class="method-columns">
+          <ul class="meth">
+            <li>Production is Alpiq's equity share (GWh); capacity is net share at 31 December (MW).</li>
+            <li>2024's windpv includes small-scale hydro. 2025 reports wind and PV separately.</li>
+            <li>2026 covers H1 only (181 days). No full-year estimate is extrapolated.</li>
+            <li>Regional lighting shares: Switzerland and EU-27 use the IEA global lighting-to-electricity ratio (~7.46%) applied to their verified total consumption. The world figure uses the IEA's direct 2,200 TWh estimate.</li>
+          </ul>
+          <ul class="meth">
+            <li>Alpiq's full output is compared independently to each region. It is not divided between regions.</li>
+            <li>Climate intensities use Alpiq's equity-share Scope 1+2 methodology (production denominator differs from the overview table).</li>
+            <li>The gas-fleet comparison is a hypothetical benchmark, not a measurement of CO₂ prevented.</li>
+            <li>Tree equivalents assume 22 kg CO₂/tree/year (illustrative), not trees planted or saved.</li>
+            <li>The globe night-light texture shows real satellite light patterns; it does not indicate Alpiq service areas.</li>
+            <li>This is an independent visualization based on public reports, not an official Alpiq product.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer class="footer">ALPIQ ENERGY ATLAS <span>Public-report data · Independent project</span></footer>
+  `;
+
+  // Init globe
+  const container = document.getElementById('globe-container');
+  const loading = document.getElementById('globe-loading');
+  if (globeRenderer) {
+    // Re-attach existing renderer canvas (DOM was rebuilt)
+    container.appendChild(globeRenderer.domElement);
+    if (loading) loading.style.display = 'none';
+    // Re-point ResizeObserver at new container element
+    if (window._globeRO) { window._globeRO.disconnect(); window._globeRO.observe(container); }
+    if (typeof window._globeSetSize === 'function') window._globeSetSize();
+    // Keep shader in sync with current mode
+    applyRegionToShader(currentMode);
+  } else {
+    try {
+      initGlobe(container);
+      if (loading) loading.style.display = 'none';
+    } catch(e) {
+      if (loading) loading.textContent = 'The 3D globe could not be started (WebGL unavailable). All statistics remain available below.';
+    }
+  }
+}
+
+function setYear(year) {
+  selectedYear = year;
+  render();
+}
+
+function setMode(mode) {
+  selectedMode = mode;
+  render(); // re-renders HTML with new active button; re-attaches globe canvas
+  switchMode(mode); // animates camera + updates shader (globeCamera exists now)
+}
+
+// Initial render — currentMode already matches selectedMode so no camera jump
+render();
+// Apply region shader for initial mode (earthMaterial may not exist yet if texture is still loading;
+// applyRegionToShader is a no-op when earthMaterial is null, so it's also called in buildEarth's callback
+// via initRegionP which reads currentMode at construction time — this covers the async case).
+</script>
+</body>
+</html>
