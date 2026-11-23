@@ -1,0 +1,24 @@
+{
+  "width": 4096,
+  "height": 2650,
+  "heightWidth": 2048,
+  "heightHeight": 1325,
+  "bounds": [
+    2478967.26,
+    1069049.7,
+    2838494.5,
+    1301616.55
+  ],
+  "heightMaxMetres": 6000.0,
+  "verticalExaggeration": 6.5,
+  "dem": "Copernicus DEM GLO-30 where public 30 m tiles are available, with per-tile GLO-90 fallback; resampled for WebGL mesh",
+  "dem_tile_counts": {
+    "GLO-30": 18,
+    "GLO-90": 0
+  },
+  "orthophoto": "swisstopo SWISSIMAGE (orthorectified aerial imagery)",
+  "relief": "swisstopo swissALTI3D multidirectional hillshade",
+  "nightlights": "Annual VIIRS VNL 2024, ~500 m source radiance, contrast-normalized for visualization",
+  "attribution": "swisstopo SWISSIMAGE / swissALTI3D \u00b7 Copernicus DEM GLO-30 \u00b7 VIIRS VNL 2024",
+  "note": "The visible 3D relief is vertically exaggerated for readability. VIIRS is the real night-light source; additional glow is a shader effect, not electricity supply data."
+}

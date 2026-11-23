@@ -4,13 +4,9 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Local geospatial data and isolated environment for Swiss 3D terrain generation
+# Local geospatial build environment and cache
 .venv-swiss-terrain/
 .cache/
-public/terrain/*.bin
-public/terrain/ch_satellite.jpg
-public/terrain/ch_hillshade.png
-public/terrain/ch_night_radiance.png
-public/terrain/ch_mask.png
-public/terrain/ch_vectors.json
-public/terrain/ch_scene.json
+
+# Generated public/terrain assets are intentionally NOT ignored.
+# Commit them if the deployed site needs the Switzerland 3D terrain scene.
